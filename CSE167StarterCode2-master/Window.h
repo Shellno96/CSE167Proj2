@@ -20,6 +20,8 @@ private:
 	static OBJObject * object2;
 	static OBJObject * object3;
 	static int object_num;
+	static glm::vec2 mouse_point;
+	static glm::vec3 lastPoint;
 
 public:
 	static int width;
@@ -33,12 +35,16 @@ public:
 	static void idle_callback();
 	static void display_callback(GLFWwindow*);
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+	static void mouse_button_callback(GLFWwindow * window, int button, int action, int mods);
+	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	static void resizeObject(float);
 	static void translateObject(glm::vec3);
 	static void scaleObject(glm::vec3);
 	static void orbitObject(float);
 	static void resetObject();
 	static OBJObject * getObject();
+	static glm::vec3 trackBallMapping(glm::vec2 point);
 	static int getHeight();
 	static int getWidth();
 };

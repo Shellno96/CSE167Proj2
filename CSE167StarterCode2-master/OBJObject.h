@@ -61,6 +61,7 @@ public:
 	void scale(glm::vec3);
 	void orbit(float);
 	void reset();
+	void mouse_rotate(float deg, glm::vec3 axis);
 	std::vector<glm::vec3> getVertices();
 	std::vector<glm::vec3> getNormals();
 	glm::mat4 getToWorld();

@@ -258,3 +258,8 @@ float OBJObject::getPointSize() {
 	return size;
 }
 
+void OBJObject::mouse_rotate(float deg, glm::vec3 axis)
+{
+	toWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * toWorld;
+}
+
