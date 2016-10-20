@@ -43,10 +43,17 @@ public:
 	static void scaleObject(glm::vec3);
 	static void orbitObject(float);
 	static void resetObject();
+
+	static void mouseRotateObject(float, glm::vec3);
+	static void mouseRotateDirLight(float rot_angle, glm::vec3 rotAxis);
+	static void mouseRotatePointLight(float rot_angle, glm::vec3 rotAxis);
+	static void scrollTranslatePointLight(glm::vec3 transVec);
+
 	static OBJObject * getObject();
 	static glm::vec3 trackBallMapping(glm::vec2 point);
 	static int getHeight();
 	static int getWidth();
+	static glm::vec3 getCamPos();
 };
 
 #endif

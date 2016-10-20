@@ -19,6 +19,12 @@ const float m_ROTSCALE = 1.0f;
 const float m_ZOOMSCALE = 1.0f;
 const float m_TRANSSCALE = 0.1f;
 
+int Mode;
+const int OBJECT = 0;
+const int DIRLIGHT = 1;
+const int POINTLIGHT = 2;
+const int SPOTLIGHT = 3;
+
 // On some systems you need to change this to the absolute path
 #define VERTEX_SHADER_PATH "../shader.vert"
 #define FRAGMENT_SHADER_PATH "../shader.frag"
@@ -36,9 +42,33 @@ glm::mat4 Window::V;
 
 void Window::initialize_objects()
 {
-	object1 = new OBJObject("C:\\Users\\Ty\\Documents\\School\\FA 16\\CSE 167\\CSE167StarterCode-master\\MyResources\\bunny.obj");
-	object2 = new OBJObject("C:\\Users\\Ty\\Documents\\School\\FA 16\\CSE 167\\CSE167StarterCode-master\\MyResources\\bear.obj");
-	object3 = new OBJObject("C:\\Users\\Ty\\Documents\\School\\FA 16\\CSE 167\\CSE167StarterCode-master\\MyResources\\dragon.obj");
+	const vector<glm::vec3> bunnyMaterial = 
+	{
+		{0.61424f, 0.04136f, 0.04136f},
+		{0.727811f,	0.626959f, 0.626959f},
+		{0.1745f, 0.01175f, 0.01175f}
+	};
+	float bunnyShininess = 0.6f;
+
+	const vector<glm::vec3> bearMaterial =
+	{
+		{ 0.4f, 0.5f, 0.5f},
+		{ 0.04f, 0.7f, 0.7f},
+		{ 0.05f, 0.05f, 0.4f}
+	};
+	float bearShininess = .078125f;
+
+	const vector<glm::vec3> dragonMaterial =
+	{
+		{ 0.4f, 0.4f, 0.4f },
+		{ 0.774597f, 0.774597f, 0.774597f },
+		{ 0.25f, 0.25f, 0.25f }
+	};
+	float dragonShininess = 0.9f;
+
+	object1 = new OBJObject("C:\\Users\\Ty\\Documents\\School\\FA 16\\CSE 167\\CSE167StarterCode-master\\MyResources\\bunny.obj", bunnyMaterial, bunnyShininess);
+	object2 = new OBJObject("C:\\Users\\Ty\\Documents\\School\\FA 16\\CSE 167\\CSE167StarterCode-master\\MyResources\\bear.obj", bearMaterial, bearShininess);
+	object3 = new OBJObject("C:\\Users\\Ty\\Documents\\School\\FA 16\\CSE 167\\CSE167StarterCode-master\\MyResources\\dragon.obj", dragonMaterial, dragonShininess);
 
 	// Load the shader program. Make sure you have the correct filepath up top
 	shaderProgram = LoadShaders(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH);
@@ -48,6 +78,8 @@ void Window::initialize_objects()
 void Window::clean_up()
 {
 	delete(object1);
+	delete(object2);
+	delete(object3);
 	glDeleteProgram(shaderProgram);
 }
 
@@ -149,65 +181,78 @@ void Window::display_callback(GLFWwindow* window)
 
 void Window::cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	//Set the last know mouse_point
 	mouse_point = { xpos, ypos };
 
-	// Handle any necessary mouse movements
 	glm::vec3 direction;
-	float pixel_diff;
 	float rot_angle, zoom_factor;
 	glm::vec3 curPoint;
+
+	// Handle any necessary mouse movements
 	switch (Movement)
 	{
 
-	case ROTATE: // Left-mouse button is being held down
-	{
-		curPoint = trackBallMapping(mouse_point); // Map the mouse position to a logical
-											// sphere location.
-
-		//cout << "CurPoint x = " << curPoint.x << " CurPoint y = " << curPoint.y << endl;
-
-		direction = curPoint - lastPoint;
-		float velocity = glm::length(direction);
-		//cout << "Direction x = " << direction.x << " Direction y = " << direction.y << " Length = " << velocity << endl;
-		if (velocity > 0.0001) // If little movement - do nothing.
+		// Left-mouse button is being held down
+		case ROTATE: 
 		{
-			// Rotate about the axis that is perpendicular to the great circle connecting the mouse movements.
-			glm::vec3 rotAxis;
-			rotAxis = glm::cross(lastPoint, curPoint);
-			rot_angle = velocity * m_ROTSCALE;
-
-			//cout << "Rotation Axis x = " << rotAxis.x << " Rotation Axis y = " << rotAxis.y << " Rotation Axis z = " << rotAxis.z << endl;
-			//cout << "Rotation Angle = " << rot_angle << endl;
-
-			// We need to apply the rotation as the last transformation.
-
-			if (object_num == 0)
-				object1->mouse_rotate(rot_angle, rotAxis);
-			else if (object_num == 1)
-				object2->mouse_rotate(rot_angle, rotAxis);
-			else if (object_num == 2)
-				object3->mouse_rotate(rot_angle, rotAxis);
+			curPoint = trackBallMapping(mouse_point); 
+			direction = curPoint - lastPoint;
+			float velocity = glm::length(direction);
+				
+			if (velocity > 0.0001) // If little movement - do nothing.
+			{
+				// Rotate about the axis that is perpendicular to the great circle connecting the mouse movements.
+				glm::vec3 rotAxis;
+				rotAxis = glm::cross(lastPoint, curPoint);
+				rot_angle = velocity * m_ROTSCALE;
+					
+				//Apply the rotation
+				switch (Mode)
+				{
+					case OBJECT:
+						mouseRotateObject(rot_angle, rotAxis);
+						break;
+					case DIRLIGHT:
+						mouseRotateDirLight(rot_angle, rotAxis);
+						break;
+					case POINTLIGHT:
+						mouseRotatePointLight(rot_angle, rotAxis);
+						break;
+					case SPOTLIGHT:
+						break;
+				}
+			}
+			break;
 		}
-		//cout << endl;
-		break;
-	}
 
-	case TRANSLATE:
-	{
-		curPoint = trackBallMapping(mouse_point);
-
-		direction = curPoint - lastPoint;
-		float velocity = glm::length(direction);
-		if (velocity > 0.0001) // If little movement - do nothing.
+		//Right-mouse button is being held down
+		case TRANSLATE:
 		{
-			translateObject({ direction.x * m_TRANSSCALE, direction.y * m_TRANSSCALE, 0 });
+			curPoint = trackBallMapping(mouse_point);
+				
+			//Get the translation vector
+			direction = curPoint - lastPoint;
+			float velocity = glm::length(direction);
+			if (velocity > 0.0001) // If little movement - do nothing.
+			{
+				//Apply the translation
+				switch (Mode)
+				{
+					case OBJECT:
+						translateObject({ direction.x * m_TRANSSCALE, direction.y * m_TRANSSCALE, 0 });
+						break;
+					case DIRLIGHT:
+						break;
+					case POINTLIGHT:
+						break;
+					case SPOTLIGHT:
+						break;
+				}
+			}
+			break;
 		}
-		break;
-	}
 
-	//
 	// Save the location of the current point for the next movement.
-	//
 	lastPoint = curPoint;
 	}
 }
@@ -219,25 +264,14 @@ void Window::mouse_button_callback(GLFWwindow * window, int button, int action, 
 		glm::vec2 point = mouse_point;
 		if (button == GLFW_MOUSE_BUTTON_LEFT)
 		{
-			cout << "LEFT BUTTON CLICKED!" << " Xpos = " << mouse_point.x << " Ypos = " << mouse_point.y << endl;
-
-			// Turn on user interactive rotations.
-			// As the user moves the mouse, the scene will rotate.
-			
+			//Rotate mode
 			Movement = ROTATE;
-
-			// Map the mouse position to a logical sphere location.
-			// Keep it in the class variable lastPoint.
-			
 			lastPoint = trackBallMapping(point);
-			//cout << "Trackball Mapped Point: " << " x = " << lastPoint.x << " y = " << lastPoint.y << " z = " << lastPoint.z << endl;
-
 		}
 
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT)
 		{
-			cout << "		RIGHT BUTTON CLICKED!" << " Xpos = " << mouse_point.x << " Ypos = " << mouse_point.y << endl;
-
+			//Translate mode
 			Movement = TRANSLATE;
 			lastPoint = trackBallMapping(point);
 		}
@@ -245,23 +279,24 @@ void Window::mouse_button_callback(GLFWwindow * window, int button, int action, 
 
 	else if (action == GLFW_RELEASE)
 	{
-		if (button == GLFW_MOUSE_BUTTON_LEFT)
-		{
-			cout << "LEFT BUTTON RELEASED!" << endl;
+		Movement = NONE;
+	}
+}
 
-			{
-				// Turn-off the rotations.
-				Movement = NONE;
-			}
-		}
-
-		else if (button == GLFW_MOUSE_BUTTON_RIGHT)
-		{
-			cout << "		RIGHT BUTTON RELEASED!" << endl;
-			{
-				Movement = NONE;
-			}
-		}
+void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	switch (Mode)
+	{
+		case OBJECT:
+			translateObject({ 0,0, -1 * yoffset * m_ZOOMSCALE });
+			break;
+		case DIRLIGHT:
+			break;
+		case POINTLIGHT:
+			scrollTranslatePointLight({ 0,0, -1 * yoffset * m_ZOOMSCALE});
+			break;
+		case SPOTLIGHT:
+			break;
 	}
 }
 
@@ -279,10 +314,7 @@ glm::vec3 Window::trackBallMapping(glm::vec2 point)
 	return v;  // return the mouse location on the surface of the trackball
 }
 
-void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	translateObject({ 0,0, -1 * yoffset * m_ZOOMSCALE});
-}
+
 
 void Window::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -402,6 +434,38 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			resetObject();
 			//cout << "r" << endl;
 		}
+
+		else if (key == GLFW_KEY_0)
+		{
+			Mode = OBJECT;
+		}
+
+		else if (key == GLFW_KEY_1)
+		{
+			Mode = DIRLIGHT;
+			if (object_num == 0)
+				object1->setLightType(0);
+			else if (object_num == 1)
+				object2->setLightType(0);
+			else if (object_num == 2)
+				object3->setLightType(0);
+		}
+
+		else if (key == GLFW_KEY_2)
+		{
+			Mode = POINTLIGHT;
+			if (object_num == 0)
+				object1->setLightType(1);
+			else if (object_num == 1)
+				object2->setLightType(1);
+			else if (object_num == 2)
+				object3->setLightType(1);
+		}
+
+		else if (key == GLFW_KEY_3)
+		{
+			Mode = SPOTLIGHT;
+		}
 	}
 }
 
@@ -470,4 +534,44 @@ int Window::getHeight() {
 
 int Window::getWidth() {
 	return width;
+}
+
+void Window::mouseRotateObject(float rot_angle, glm::vec3 rotAxis) {
+	if (object_num == 0)
+		object1->mouse_rotate(rot_angle, rotAxis);
+	else if (object_num == 1)
+		object2->mouse_rotate(rot_angle, rotAxis);
+	else if (object_num == 2)
+		object3->mouse_rotate(rot_angle, rotAxis);
+}
+
+void Window::mouseRotateDirLight(float rot_angle, glm::vec3 rotAxis) {
+	if (object_num == 0)
+		object1->dirLight_rotate(rot_angle, rotAxis);
+	else if (object_num == 1)
+		object2->dirLight_rotate(rot_angle, rotAxis);
+	else if (object_num == 2)
+		object3->dirLight_rotate(rot_angle, rotAxis);
+}
+
+void Window::mouseRotatePointLight(float rot_angle, glm::vec3 rotAxis) {
+	if (object_num == 0)
+		object1->pointLight_rotate(rot_angle, rotAxis);
+	else if (object_num == 1)
+		object2->pointLight_rotate(rot_angle, rotAxis);
+	else if (object_num == 2)
+		object3->pointLight_rotate(rot_angle, rotAxis);
+}
+
+void Window::scrollTranslatePointLight(glm::vec3 transVec) {
+	if (object_num == 0)
+		object1->pointLight_translate(transVec);
+	else if (object_num == 1)
+		object2->pointLight_translate(transVec);
+	else if (object_num == 2)
+		object3->pointLight_translate(transVec);
+}
+
+glm::vec3 Window::getCamPos() {
+	return cam_pos;
 }

@@ -36,6 +36,8 @@ private:
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec3> normals;
 	glm::mat4 toWorld;
+	glm::mat4 dirLightToWorld;
+	glm::mat4 pointLightToWorld;
 
 	FILE * fp;     // file pointer
 	float x, y, z;  // vertex coordinates
@@ -46,8 +48,22 @@ private:
 	float avgCenterX, avgCenterY, avgCenterZ, avgScaleX, avgScaleY, avgScaleZ;
 	float objectSize;
 
+	int lightType = 0;
+	
+	glm::vec3 dirLightDirection;
+	glm::vec3 pointLight;
+
+	glm::vec3 outDirLightDirection;
+	glm::vec3 outPointLight;
+
+
+	glm::vec3 diffuseMaterial;
+	glm::vec3 specularMaterial;
+	glm::vec3 ambientMaterial;
+	float shininessMaterial;
+
 public:
-	OBJObject(const char *);
+	OBJObject(const char *, vector<glm::vec3>, float);
 	~OBJObject();
 
 	void draw(GLuint);
@@ -62,6 +78,12 @@ public:
 	void orbit(float);
 	void reset();
 	void mouse_rotate(float deg, glm::vec3 axis);
+	void dirLight_rotate(float deg, glm::vec3 axis);
+	void pointLight_rotate(float deg, glm::vec3 axis);
+	void pointLight_translate(glm::vec3 transVec);
+
+	void setLightType(int);
+
 	std::vector<glm::vec3> getVertices();
 	std::vector<glm::vec3> getNormals();
 	glm::mat4 getToWorld();
@@ -69,7 +91,7 @@ public:
 
 	// These variables are needed for the shader program
 	GLuint VBO, VAO, EBO;
-	GLuint uProjection, uModelview;
+	GLuint uProjection, uModelview, uModelColor;
 };
 
 #endif

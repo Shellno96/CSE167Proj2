@@ -1,12 +1,31 @@
 #include "OBJObject.h"
 #include "Window.h"
 
-OBJObject::OBJObject(const char * filePath)
+OBJObject::OBJObject(const char * filePath, vector<glm::vec3> materialData, float shininess)
 {
 	toWorld = glm::mat4(1.0f);
+	dirLightToWorld = glm::mat4(1.0f);
+	pointLightToWorld = glm::mat4(1.0f);
+
+
+	dirLightDirection = { 0.0f, 0.0f, -1.0f };
+	pointLight = { 0.0f, 0.0f, 0.0f };
+
+	diffuseMaterial = materialData[0];
+	specularMaterial = materialData[1];
+	ambientMaterial = materialData[2];
+	shininessMaterial = shininess;
 
 	parse1(filePath);
 	parse2(filePath);
+
+	vector<glm::vec3> combinedVertices;
+
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		combinedVertices.push_back(vertices[i]);
+		combinedVertices.push_back(normals[i]);
+	}
 
 	// Create array object and buffers. Remember to delete your buffers when the object is destroyed!
 	glGenVertexArrays(1, &VAO);
@@ -22,18 +41,20 @@ OBJObject::OBJObject(const char * filePath)
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	// glBufferData populates the most recently bound buffer with data starting at the 3rd argument and ending after
 	// the 2nd argument number of indices. How does OpenGL know how long an index spans? Go to glVertexAttribPointer.
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, combinedVertices.size() * sizeof(glm::vec3), &combinedVertices[0], GL_STATIC_DRAW);
 	// Enable the usage of layout location 0 (check the vertex shader to see what this is)
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0,// This first parameter x should be the same as the number passed into the line "layout (location = x)" in the vertex shader. In this case, it's 0. Valid values are 0 to GL_MAX_UNIFORM_LOCATIONS.
 		3, // This second line tells us how any components there are per vertex. In this case, it's 3 (we have an x, y, and z component)
 		GL_FLOAT, // What type these components are
 		GL_FALSE, // GL_TRUE means the values should be normalized. GL_FALSE means they shouldn't
-		3 * sizeof(GLfloat), // Offset between consecutive indices. Since each of our vertices have 3 floats, they should have the size of 3 floats in between
+		6 * sizeof(GLfloat), // Offset between consecutive indices. Since each of our vertices have 3 floats, they should have the size of 3 floats in between
 		(GLvoid*)0); // Offset of the first vertex's component. In our case it's 0 since we don't pad the vertices array with anything.
-
 	// We've sent the vertex data over to OpenGL, but there's still something missing.
 	// In what order should it draw those vertices? That's why we'll need a GL_ELEMENT_ARRAY_BUFFER for this.
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
@@ -42,6 +63,7 @@ OBJObject::OBJObject(const char * filePath)
 	// Unbind the VAO now so we don't accidentally tamper with it.
 	// NOTE: You must NEVER unbind the element array buffer associated with a VAO!
 	glBindVertexArray(0);
+
 }
 
 OBJObject::~OBJObject()
@@ -57,6 +79,10 @@ void OBJObject::draw(GLuint shaderProgram)
 { 
 	// Calculate the combination of the model and view (camera inverse) matrices
 	glm::mat4 modelview = Window::V * toWorld;
+	outDirLightDirection = glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f));
+	outDirLightDirection.z += 20;
+	outPointLight = glm::vec3(Window::V * pointLightToWorld * glm::vec4(pointLight, 1.0f));
+
 	// We need to calcullate this because modern OpenGL does not keep track of any matrix other than the viewport (D)
 	// Consequently, we need to forward the projection, view, and model matrices to the shader programs
 	// Get the location of the uniform variables "projection" and "modelview"
@@ -65,6 +91,47 @@ void OBJObject::draw(GLuint shaderProgram)
 	// Now send these values to the shader program
 	glUniformMatrix4fv(uProjection, 1, GL_FALSE, &Window::P[0][0]);
 	glUniformMatrix4fv(uModelview, 1, GL_FALSE, &modelview[0][0]);
+
+	//**** MY EDITS *****//
+
+	//material
+	GLint matDiffuseLoc = glGetUniformLocation(shaderProgram, "material.diffuse");
+	GLint matSpecularLoc = glGetUniformLocation(shaderProgram, "material.specular");
+	GLint matAmbientLoc = glGetUniformLocation(shaderProgram, "material.ambient");
+	GLint matShineLoc = glGetUniformLocation(shaderProgram, "material.shininess");
+	glUniform3f(matDiffuseLoc, diffuseMaterial.x, diffuseMaterial.y, diffuseMaterial.z);
+	glUniform3f(matSpecularLoc, specularMaterial.x, specularMaterial.y, specularMaterial.z);
+	glUniform3f(matAmbientLoc, ambientMaterial.x, ambientMaterial.y, ambientMaterial.z);
+	glUniform1f(matShineLoc, shininessMaterial);
+
+	//Light Type
+	GLint LightTypeLoc = glGetUniformLocation(shaderProgram, "lightType");
+	glUniform1i(LightTypeLoc, lightType); // Also set light's color (white)
+	
+	//Directional Light direction
+	GLint DirLightDirectionLoc = glGetUniformLocation(shaderProgram, "dirLight.direction");
+	glUniform3f(DirLightDirectionLoc, outDirLightDirection.x, outDirLightDirection.y, outDirLightDirection.z); // Also set light's color (white)
+	//Directional Light color
+	GLint DirLightColorLoc = glGetUniformLocation(shaderProgram, "dirLight.color");
+	glUniform3f(DirLightColorLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
+
+	//Point Light position
+	GLint PointLightPosLoc = glGetUniformLocation(shaderProgram, "pointLight.position");
+	glUniform3f(PointLightPosLoc, outPointLight.x, outPointLight.y, outPointLight.z);
+	//Point Light color
+	GLint PointLightColorLoc = glGetUniformLocation(shaderProgram, "pointLight.color");
+	glUniform3f(PointLightColorLoc, 1.0f, 1.0f, 1.0f);
+	//Point Light quadratic constant
+	GLint PointLightQuadLoc = glGetUniformLocation(shaderProgram, "pointLight.quadratic");
+	glUniform1f(PointLightQuadLoc, 1.0f);
+
+	//view position
+	glm::vec3 cam_pos = Window::getCamPos();
+	GLint viewPosLoc = glGetUniformLocation(shaderProgram, "viewPos");
+	glUniform3f(viewPosLoc, cam_pos.x, cam_pos.y, cam_pos.z);
+
+	//*** END MY EDITS ***//
+
 	// Now draw the OBJObject. We simply need to bind the VAO associated with it.
 	glBindVertexArray(VAO);
 	// Tell OpenGL to draw with triangles, using indices.size() indices, the type of the indices, and the offset to start from
@@ -174,8 +241,13 @@ void OBJObject::parse2(const char *filepath)
 			else if (c2 == 'n')
 			{
 				count_vn++;
-				fscanf(fp, "%f %f %f", &r, &g, &b);
-				normals.push_back({ r,g,b });
+				fscanf(fp, "%f %f %f", &x, &y, &z);
+
+				x = (x - avgCenterX) / objectSize;
+				y = (y - avgCenterY) / objectSize;
+				z = (z - avgCenterZ) / objectSize;
+
+				normals.push_back({ x,y,z });
 				//cout << count_vn << "." << "r: " << r << " g: " << g << " b: " << b << endl;
 			}
 		}
@@ -209,7 +281,6 @@ void OBJObject::parse2(const char *filepath)
 		}
 	}
 
-
 	fclose(fp);   // make sure you don't forget to close the file when done
 }
 
@@ -228,7 +299,6 @@ void OBJObject::resize(float change)
 void OBJObject::scale(glm::vec3 scaleVector)
 {
 	toWorld = toWorld * glm::scale(glm::mat4(1.0f), scaleVector);
-
 }
 
 void OBJObject::orbit(float deg)
@@ -258,8 +328,32 @@ float OBJObject::getPointSize() {
 	return size;
 }
 
-void OBJObject::mouse_rotate(float deg, glm::vec3 axis)
-{
+void OBJObject::mouse_rotate(float deg, glm::vec3 axis) {
 	toWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * toWorld;
 }
 
+void OBJObject::dirLight_rotate(float deg, glm::vec3 axis) {
+	dirLightToWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * dirLightToWorld;
+	/*cout << "Point Light Position: " << "x : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).x
+		<< " y : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).y
+		<< " z : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).z + 20
+		<< endl;*/
+}
+
+void OBJObject::pointLight_rotate(float deg, glm::vec3 axis) {
+	pointLightToWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * pointLightToWorld;
+}
+
+void OBJObject::pointLight_translate(glm::vec3 transVec)
+{
+	pointLightToWorld = pointLightToWorld * glm::translate(glm::mat4(1.0f), transVec);
+	/*cout << "Point Light Position: " << "x : " << glm::vec3(Window::V * pointLightToWorld * glm::vec4(pointLight, 1.0f)).x 
+									 << " y : " << glm::vec3(Window::V * pointLightToWorld * glm::vec4(pointLight, 1.0f)).y
+									 << " z : " << glm::vec3(Window::V * pointLightToWorld * glm::vec4(pointLight, 1.0f)).z + 20
+									 << endl;*/
+}
+
+void OBJObject::setLightType(int type)
+{
+	lightType = type;
+}
