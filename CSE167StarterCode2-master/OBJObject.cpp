@@ -394,10 +394,10 @@ void OBJObject::mouse_rotate(float deg, glm::vec3 axis) {
 
 void OBJObject::dirLight_rotate(float deg, glm::vec3 axis) {
 	dirLightToWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * dirLightToWorld;
-	cout << "Direction Light Direction: " << "x : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).x
+	/*cout << "Direction Light Direction: " << "x : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).x
 		<< " y : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).y
 		<< " z : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).z + 20
-		<< endl;
+		<< endl;*/
 }
 
 void OBJObject::pointLight_rotate(float deg, glm::vec3 axis) {
