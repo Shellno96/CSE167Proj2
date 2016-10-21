@@ -86,6 +86,7 @@ public:
 	void scale(glm::vec3);
 	void orbit(float);
 	void reset();
+	void resetLight();
 	void mouse_rotate(float deg, glm::vec3 axis);
 	void dirLight_rotate(float deg, glm::vec3 axis);
 	void pointLight_rotate(float deg, glm::vec3 axis);

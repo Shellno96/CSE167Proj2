@@ -11,7 +11,7 @@ OBJObject::OBJObject(const char * filePath, vector<glm::vec3> materialData, floa
 	normalToWorld = glm::mat4(1.0f);
 
 
-	dirLightDirection = { 0.0f, 0.0f, -1000.0f };
+	dirLightDirection = { 0.0f, 0.0f, -40.0f };
 	pointLight = { 0.0f, 0.0f, 1.0f };
 	spotLight = { 0.0f, 0.0f, -1.0f };
 	spotLightDirection = { 0.0f, 0.0f, -20.0f };
@@ -146,7 +146,7 @@ void OBJObject::draw(GLuint shaderProgram)
 	glUniform3f(PointLightAmbientLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white);
 	//Point Light quadratic constant
 	GLint PointLightQuadLoc = glGetUniformLocation(shaderProgram, "pointLight.quadratic");
-	glUniform1f(PointLightQuadLoc, 1.0f);
+	glUniform1f(PointLightQuadLoc, 0.5f);
 
 	//Spot Light position
 	GLint SpotLightPosLoc = glGetUniformLocation(shaderProgram, "spotLight.position");
@@ -359,6 +359,16 @@ void OBJObject::orbit(float deg)
 void OBJObject::reset()
 {
 	toWorld = glm::mat4(1.0f);
+}
+
+void OBJObject::resetLight()
+{
+	if (lightType == 0) dirLightToWorld = glm::mat4(1.0f);
+	if (lightType == 1) pointLightToWorld = glm::mat4(1.0f);
+	if (lightType == 2) {
+		spotLightToWorld = glm::mat4(1.0f);
+		spotLightDirectionToWorld = glm::mat4(1.0f);
+	}
 }
 
 std::vector<glm::vec3> OBJObject::getVertices() {

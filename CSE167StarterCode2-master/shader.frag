@@ -85,8 +85,8 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 	vec3 diffuse = diff * material.diffuse * light.diffuse;
 	
 	//specular
-	vec3 reflectDir = reflect(-lightDir, normal);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+	float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess * 128.0f);
 	vec3 specular = spec * material.specular * light.specular;
 	
 	//ambient
@@ -106,8 +106,8 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 	vec3 diffuse = diff * material.diffuse * light.diffuse;
 
 	// Specular shading
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+	float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess * 128.0f);
 	vec3 specular = spec * material.specular * light.specular;
 
 	//ambient
@@ -136,8 +136,8 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 		vec3 diffuse = diff * material.diffuse * light.diffuse;
 			
 		// Specular shading
-		vec3 reflectDir = reflect(-lightDir, normal);
-		float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+		vec3 halfwayDir = normalize(lightDir + viewDir);
+		float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess * 128.0f);
 		vec3 specular = spec * material.specular * light.specular;
 
 		//ambient

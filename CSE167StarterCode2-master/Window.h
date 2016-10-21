@@ -43,6 +43,7 @@ public:
 	static void scaleObject(glm::vec3);
 	static void orbitObject(float);
 	static void resetObject();
+	static void resetLight();
 
 	static void mouseRotateObject(float, glm::vec3);
 	static void mouseRotateDirLight(float rot_angle, glm::vec3 rotAxis);

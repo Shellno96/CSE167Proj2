@@ -45,27 +45,27 @@ void Window::initialize_objects()
 {
 	const vector<glm::vec3> bunnyMaterial = 
 	{
-		{0.61424f, 0.04136f, 0.04136f},
-		{0.727811f,	0.626959f, 0.626959f},
-		{0.1745f, 0.01175f, 0.01175f}
+		{0.7f, 0.28f, 0.49f},
+		{0.727811f,	0.326959f, 0.326959f},
+		{0.1745f, 0.04175f, 0.05175f}
 	};
-	float bunnyShininess = 0.6f;
+	float bunnyShininess = 0.2f;
 
 	const vector<glm::vec3> bearMaterial =
 	{
-		{ 0.4f, 0.5f, 0.5f},
-		{ 0.04f, 0.7f, 0.7f},
-		{ 0.05f, 0.05f, 0.4f}
+		{ 0.2f, 0.4f, 0.5f},
+		{ 0.03f, 0.6f, 0.7f},
+		{ 0.03f, 0.04f, 0.5f}
 	};
-	float bearShininess = .078125f;
+	float bearShininess = .038125f;
 
 	const vector<glm::vec3> dragonMaterial =
 	{
-		{ 0.4f, 0.4f, 0.4f },
-		{ 0.774597f, 0.774597f, 0.774597f },
-		{ 0.25f, 0.25f, 0.25f }
+	{ 0.05164f, 0.50648f, 0.22648f },
+	{ 0.028281f, 0.655802f, 0.366065f },
+	{ 0.04725f, 0.3995f, 0.2745f }
 	};
-	float dragonShininess = 0.9f;
+	float dragonShininess = 0.85f;
 
 	object1 = new OBJObject("C:\\Users\\Ty\\Documents\\School\\FA 16\\CSE 167\\CSE167StarterCode-master\\MyResources\\bunny.obj", bunnyMaterial, bunnyShininess);
 	object2 = new OBJObject("C:\\Users\\Ty\\Documents\\School\\FA 16\\CSE 167\\CSE167StarterCode-master\\MyResources\\bear.obj", bearMaterial, bearShininess);
@@ -186,7 +186,7 @@ void Window::cursor_position_callback(GLFWwindow* window, double xpos, double yp
 	mouse_point = { xpos, ypos };
 
 	glm::vec3 direction;
-	float rot_angle, zoom_factor;
+	float rot_angle;
 	glm::vec3 curPoint;
 
 	// Handle any necessary mouse movements
@@ -453,6 +453,11 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			//cout << "r" << endl;
 		}
 
+		else if (key == GLFW_KEY_L)
+		{
+			resetLight();
+		}
+
 		else if (key == GLFW_KEY_0)
 		{
 			Mode = OBJECT;
@@ -552,6 +557,16 @@ void Window::resetObject()
 		object2->reset();
 	else if (object_num == 2)
 		object3->reset();
+}
+
+void Window::resetLight()
+{
+	if (object_num == 0)
+		object1->resetLight();
+	else if (object_num == 1)
+		object2->resetLight();
+	else if (object_num == 2)
+		object3->resetLight();
 }
 
 OBJObject * Window::getObject() {
