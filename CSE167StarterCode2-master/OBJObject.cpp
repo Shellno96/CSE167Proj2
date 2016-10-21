@@ -6,10 +6,17 @@ OBJObject::OBJObject(const char * filePath, vector<glm::vec3> materialData, floa
 	toWorld = glm::mat4(1.0f);
 	dirLightToWorld = glm::mat4(1.0f);
 	pointLightToWorld = glm::mat4(1.0f);
+	spotLightToWorld = glm::mat4(1.0f);
+	spotLightDirectionToWorld = glm::mat4(1.0f);
+	normalToWorld = glm::mat4(1.0f);
 
 
-	dirLightDirection = { 0.0f, 0.0f, -1.0f };
-	pointLight = { 0.0f, 0.0f, 0.0f };
+	dirLightDirection = { 0.0f, 0.0f, -1000.0f };
+	pointLight = { 0.0f, 0.0f, 1.0f };
+	spotLight = { 0.0f, 0.0f, -1.0f };
+	spotLightDirection = { 0.0f, 0.0f, -20.0f };
+	spotLightCutOff = glm::radians(22.5f);
+	spotExponent = 1.0f;
 
 	diffuseMaterial = materialData[0];
 	specularMaterial = materialData[1];
@@ -80,17 +87,21 @@ void OBJObject::draw(GLuint shaderProgram)
 	// Calculate the combination of the model and view (camera inverse) matrices
 	glm::mat4 modelview = Window::V * toWorld;
 	outDirLightDirection = glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f));
-	outDirLightDirection.z += 20;
+	//outDirLightDirection.z += 20;
 	outPointLight = glm::vec3(Window::V * pointLightToWorld * glm::vec4(pointLight, 1.0f));
+	outSpotLight = glm::vec3(Window::V * spotLightToWorld * glm::vec4(spotLight, 1.0f));
+	outSpotLightDirection = glm::vec3(Window::V * spotLightDirectionToWorld * glm::vec4(spotLightDirection, 1.0f));
 
 	// We need to calcullate this because modern OpenGL does not keep track of any matrix other than the viewport (D)
 	// Consequently, we need to forward the projection, view, and model matrices to the shader programs
 	// Get the location of the uniform variables "projection" and "modelview"
 	uProjection = glGetUniformLocation(shaderProgram, "projection");
 	uModelview = glGetUniformLocation(shaderProgram, "modelview");
+	uNormalModelView = glGetUniformLocation(shaderProgram, "normalModelView");
 	// Now send these values to the shader program
 	glUniformMatrix4fv(uProjection, 1, GL_FALSE, &Window::P[0][0]);
 	glUniformMatrix4fv(uModelview, 1, GL_FALSE, &modelview[0][0]);
+	glUniformMatrix4fv(uNormalModelView, 1, GL_FALSE, &normalToWorld[0][0]);
 
 	//**** MY EDITS *****//
 
@@ -111,19 +122,53 @@ void OBJObject::draw(GLuint shaderProgram)
 	//Directional Light direction
 	GLint DirLightDirectionLoc = glGetUniformLocation(shaderProgram, "dirLight.direction");
 	glUniform3f(DirLightDirectionLoc, outDirLightDirection.x, outDirLightDirection.y, outDirLightDirection.z); // Also set light's color (white)
-	//Directional Light color
-	GLint DirLightColorLoc = glGetUniformLocation(shaderProgram, "dirLight.color");
-	glUniform3f(DirLightColorLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
+	//Directional Light diffuse
+	GLint DirLightDiffuseLoc = glGetUniformLocation(shaderProgram, "dirLight.diffuse");
+	glUniform3f(DirLightDiffuseLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
+	//Directional Light specular
+	GLint DirLightSpecularLoc = glGetUniformLocation(shaderProgram, "dirLight.specular");
+	glUniform3f(DirLightSpecularLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
+	//Directional Light ambient
+	GLint DirLightAmbientLoc = glGetUniformLocation(shaderProgram, "dirLight.ambient");
+	glUniform3f(DirLightAmbientLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
 
 	//Point Light position
 	GLint PointLightPosLoc = glGetUniformLocation(shaderProgram, "pointLight.position");
 	glUniform3f(PointLightPosLoc, outPointLight.x, outPointLight.y, outPointLight.z);
-	//Point Light color
-	GLint PointLightColorLoc = glGetUniformLocation(shaderProgram, "pointLight.color");
-	glUniform3f(PointLightColorLoc, 1.0f, 1.0f, 1.0f);
+	//Point Light diffuse
+	GLint PointLightDiffuseLoc = glGetUniformLocation(shaderProgram, "pointLight.diffuse");
+	glUniform3f(PointLightDiffuseLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
+	//Point Light specular
+	GLint PointLightSpecularLoc = glGetUniformLocation(shaderProgram, "pointLight.specular");
+	glUniform3f(PointLightSpecularLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
+	//Point Light ambient
+	GLint PointLightAmbientLoc = glGetUniformLocation(shaderProgram, "pointLight.ambient");
+	glUniform3f(PointLightAmbientLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white);
 	//Point Light quadratic constant
 	GLint PointLightQuadLoc = glGetUniformLocation(shaderProgram, "pointLight.quadratic");
 	glUniform1f(PointLightQuadLoc, 1.0f);
+
+	//Spot Light position
+	GLint SpotLightPosLoc = glGetUniformLocation(shaderProgram, "spotLight.position");
+	glUniform3f(SpotLightPosLoc, outSpotLight.x, outSpotLight.y, outSpotLight.z);
+	//Spot Light direction
+	GLint SpotLightDirLoc = glGetUniformLocation(shaderProgram, "spotLight.direction");
+	glUniform3f(SpotLightDirLoc, outSpotLightDirection.x, outSpotLightDirection.y, outSpotLightDirection.z);
+	//Spot Light diffuse
+	GLint SpotLightDiffuseLoc = glGetUniformLocation(shaderProgram, "spotLight.diffuse");
+	glUniform3f(SpotLightDiffuseLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
+	//Spot Light specular
+	GLint SpotLightSpecularLoc = glGetUniformLocation(shaderProgram, "spotLight.specular");
+	glUniform3f(SpotLightSpecularLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white)
+	//Spot Light ambient
+	GLint SpotLightAmbientLoc = glGetUniformLocation(shaderProgram, "spotLight.ambient");
+	glUniform3f(SpotLightAmbientLoc, 1.0f, 1.0f, 1.0f); // Also set light's color (white);
+	//Spot Light exponent 
+	GLint SpotLightQuadLoc = glGetUniformLocation(shaderProgram, "spotLight.spotExponent");
+	glUniform1f(SpotLightQuadLoc, spotExponent);
+	//Spot Light cutoff
+	GLint SpotLightCutOffLoc = glGetUniformLocation(shaderProgram, "spotLight.cutOff");
+	glUniform1f(SpotLightCutOffLoc, glm::cos(spotLightCutOff));
 
 	//view position
 	glm::vec3 cam_pos = Window::getCamPos();
@@ -230,9 +275,11 @@ void OBJObject::parse2(const char *filepath)
 				count_v++;
 				fscanf(fp, "%f %f %f", &x, &y, &z);
 
+				
 				x = (x - avgCenterX) / objectSize;
 				y = (y - avgCenterY) / objectSize;
 				z = (z - avgCenterZ) / objectSize;
+				
 
 				vertices.push_back({ x,y,z });
 				//cout << count_v << "." << "x: " << x << " y: " << y << " z: " << z << endl;
@@ -242,10 +289,12 @@ void OBJObject::parse2(const char *filepath)
 			{
 				count_vn++;
 				fscanf(fp, "%f %f %f", &x, &y, &z);
-
+				
+				/*
 				x = (x - avgCenterX) / objectSize;
 				y = (y - avgCenterY) / objectSize;
 				z = (z - avgCenterZ) / objectSize;
+				*/
 
 				normals.push_back({ x,y,z });
 				//cout << count_vn << "." << "r: " << r << " g: " << g << " b: " << b << endl;
@@ -330,14 +379,15 @@ float OBJObject::getPointSize() {
 
 void OBJObject::mouse_rotate(float deg, glm::vec3 axis) {
 	toWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * toWorld;
+	normalToWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * normalToWorld;
 }
 
 void OBJObject::dirLight_rotate(float deg, glm::vec3 axis) {
 	dirLightToWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * dirLightToWorld;
-	/*cout << "Point Light Position: " << "x : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).x
+	cout << "Direction Light Direction: " << "x : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).x
 		<< " y : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).y
 		<< " z : " << glm::vec3(Window::V * dirLightToWorld * glm::vec4(dirLightDirection, 1.0f)).z + 20
-		<< endl;*/
+		<< endl;
 }
 
 void OBJObject::pointLight_rotate(float deg, glm::vec3 axis) {
@@ -351,6 +401,34 @@ void OBJObject::pointLight_translate(glm::vec3 transVec)
 									 << " y : " << glm::vec3(Window::V * pointLightToWorld * glm::vec4(pointLight, 1.0f)).y
 									 << " z : " << glm::vec3(Window::V * pointLightToWorld * glm::vec4(pointLight, 1.0f)).z + 20
 									 << endl;*/
+}
+
+void OBJObject::spotLight_rotate(float deg, glm::vec3 axis)
+{
+	spotLightToWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * spotLightToWorld;
+	spotLightDirectionToWorld = glm::rotate(glm::mat4(1.0f), deg / 180.0f * glm::pi<float>(), axis) * spotLightDirectionToWorld;
+}
+
+void OBJObject::spotLight_changeCutOff(float change) 
+{
+	spotLightCutOff += glm::radians(change);
+	if (spotLightCutOff < glm::radians(0.0f))
+		spotLightCutOff = glm::radians(0.0f);
+	else if (spotLightCutOff > glm::radians(360.0f))
+	{
+		spotLightCutOff = glm::radians(360.0f);
+	}
+}
+
+void OBJObject::spotLight_changeSpotExponent(float change) {
+	
+	spotExponent += change;
+	if (spotExponent < 0.0f)
+		spotExponent = 0.0f;
+}
+
+void OBJObject::spotLight_translate(glm::vec3 transVec) {
+	spotLightToWorld = spotLightToWorld * glm::translate(glm::mat4(1.0f), transVec);
 }
 
 void OBJObject::setLightType(int type)

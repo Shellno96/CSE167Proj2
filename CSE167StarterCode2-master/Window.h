@@ -48,6 +48,10 @@ public:
 	static void mouseRotateDirLight(float rot_angle, glm::vec3 rotAxis);
 	static void mouseRotatePointLight(float rot_angle, glm::vec3 rotAxis);
 	static void scrollTranslatePointLight(glm::vec3 transVec);
+	static void mouseRotateSpotLight(float rot_angle, glm::vec3 rotAxis);
+	static void changeSpotLightCutOff(float change);
+	static void changeSpotLightSpotExponent(float change);
+	static void scrollTranslateSpotLight(glm::vec3 transVec);
 
 	static OBJObject * getObject();
 	static glm::vec3 trackBallMapping(glm::vec2 point);

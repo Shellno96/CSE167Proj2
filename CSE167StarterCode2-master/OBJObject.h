@@ -38,6 +38,9 @@ private:
 	glm::mat4 toWorld;
 	glm::mat4 dirLightToWorld;
 	glm::mat4 pointLightToWorld;
+	glm::mat4 spotLightToWorld;
+	glm::mat4 spotLightDirectionToWorld;
+	glm::mat4 normalToWorld;
 
 	FILE * fp;     // file pointer
 	float x, y, z;  // vertex coordinates
@@ -52,9 +55,15 @@ private:
 	
 	glm::vec3 dirLightDirection;
 	glm::vec3 pointLight;
+	glm::vec3 spotLight;
+	glm::vec3 spotLightDirection;
+	float spotLightCutOff;
+	float spotExponent;
 
 	glm::vec3 outDirLightDirection;
 	glm::vec3 outPointLight;
+	glm::vec3 outSpotLight;
+	glm::vec3 outSpotLightDirection;
 
 
 	glm::vec3 diffuseMaterial;
@@ -81,6 +90,10 @@ public:
 	void dirLight_rotate(float deg, glm::vec3 axis);
 	void pointLight_rotate(float deg, glm::vec3 axis);
 	void pointLight_translate(glm::vec3 transVec);
+	void spotLight_rotate(float deg, glm::vec3 axis);
+	void spotLight_changeCutOff(float change);
+	void spotLight_changeSpotExponent(float change);
+	void spotLight_translate(glm::vec3 transVec);
 
 	void setLightType(int);
 
@@ -91,7 +104,7 @@ public:
 
 	// These variables are needed for the shader program
 	GLuint VBO, VAO, EBO;
-	GLuint uProjection, uModelview, uModelColor;
+	GLuint uProjection, uModelview, uModelColor, uNormalModelView;
 };
 
 #endif

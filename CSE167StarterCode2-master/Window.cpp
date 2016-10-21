@@ -24,6 +24,7 @@ const int OBJECT = 0;
 const int DIRLIGHT = 1;
 const int POINTLIGHT = 2;
 const int SPOTLIGHT = 3;
+const int NORMALS = 4;
 
 // On some systems you need to change this to the absolute path
 #define VERTEX_SHADER_PATH "../shader.vert"
@@ -213,12 +214,13 @@ void Window::cursor_position_callback(GLFWwindow* window, double xpos, double yp
 						mouseRotateObject(rot_angle, rotAxis);
 						break;
 					case DIRLIGHT:
-						mouseRotateDirLight(rot_angle, rotAxis);
+						mouseRotateDirLight(-rot_angle, rotAxis);
 						break;
 					case POINTLIGHT:
 						mouseRotatePointLight(rot_angle, rotAxis);
 						break;
 					case SPOTLIGHT:
+						mouseRotateSpotLight(rot_angle, rotAxis);
 						break;
 				}
 			}
@@ -246,6 +248,7 @@ void Window::cursor_position_callback(GLFWwindow* window, double xpos, double yp
 					case POINTLIGHT:
 						break;
 					case SPOTLIGHT:
+						changeSpotLightCutOff(direction.y * m_TRANSSCALE);
 						break;
 				}
 			}
@@ -296,6 +299,7 @@ void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 			scrollTranslatePointLight({ 0,0, -1 * yoffset * m_ZOOMSCALE});
 			break;
 		case SPOTLIGHT:
+			scrollTranslateSpotLight({ 0,0, -1 * yoffset * m_ZOOMSCALE});
 			break;
 	}
 }
@@ -429,6 +433,20 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			}
 		}
 
+		else if (key == GLFW_KEY_E)
+		{
+			if (mods == GLFW_MOD_SHIFT)
+			{
+				changeSpotLightSpotExponent(1.0f);
+				//cout << "E" << mods << endl;
+			}
+			else
+			{
+				changeSpotLightSpotExponent(-1.0f);
+				//cout << "e" << endl;
+			}
+		}
+
 		else if (key == GLFW_KEY_R)
 		{
 			resetObject();
@@ -465,6 +483,23 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 		else if (key == GLFW_KEY_3)
 		{
 			Mode = SPOTLIGHT;
+			if (object_num == 0)
+				object1->setLightType(2);
+			else if (object_num == 1)
+				object2->setLightType(2);
+			else if (object_num == 2)
+				object3->setLightType(2);
+		}
+
+		else if (key == GLFW_KEY_4)
+		{
+			Mode = NORMALS;
+			if (object_num == 0)
+				object1->setLightType(3);
+			else if (object_num == 1)
+				object2->setLightType(3);
+			else if (object_num == 2)
+				object3->setLightType(3);
 		}
 	}
 }
@@ -481,12 +516,12 @@ void Window::resizeObject(float change)
 
 void Window::translateObject(glm::vec3 transVec)
 {
-	if (object_num == 0)
-		object1->translate(transVec);
-	else if (object_num == 1)
-		object2->translate(transVec);
-	else if (object_num == 2)
-		object3->translate(transVec);
+if (object_num == 0)
+object1->translate(transVec);
+else if (object_num == 1)
+object2->translate(transVec);
+else if (object_num == 2)
+object3->translate(transVec);
 }
 
 void Window::scaleObject(glm::vec3 transVec)
@@ -570,6 +605,42 @@ void Window::scrollTranslatePointLight(glm::vec3 transVec) {
 		object2->pointLight_translate(transVec);
 	else if (object_num == 2)
 		object3->pointLight_translate(transVec);
+}
+
+void Window::scrollTranslateSpotLight(glm::vec3 transVec) {
+	if (object_num == 0)
+		object1->spotLight_translate(transVec);
+	else if (object_num == 1)
+		object2->spotLight_translate(transVec);
+	else if (object_num == 2)
+		object3->spotLight_translate(transVec);
+}
+
+void Window::mouseRotateSpotLight(float rot_angle, glm::vec3 rotAxis) {
+	if (object_num == 0)
+		object1->spotLight_rotate(rot_angle, rotAxis);
+	else if (object_num == 1)
+		object2->spotLight_rotate(rot_angle, rotAxis);
+	else if (object_num == 2)
+		object3->spotLight_rotate(rot_angle, rotAxis);
+}
+
+void Window::changeSpotLightCutOff(float change){
+	if (object_num == 0)
+		object1->spotLight_changeCutOff(change);
+	else if (object_num == 1)
+		object2->spotLight_changeCutOff(change);
+	else if (object_num == 2)
+		object3->spotLight_changeCutOff(change);
+}
+
+void Window::changeSpotLightSpotExponent(float change) {
+	if (object_num == 0)
+		object1->spotLight_changeSpotExponent(change);
+	else if (object_num == 1)
+		object2->spotLight_changeSpotExponent(change);
+	else if (object_num == 2)
+		object3->spotLight_changeSpotExponent(change);
 }
 
 glm::vec3 Window::getCamPos() {
